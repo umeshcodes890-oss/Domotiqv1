@@ -1,0 +1,9 @@
+# DOMOTIQ database configuration template.
+# Copy this file to config/domotiq.properties and fill in real values,
+# or export the matching environment variables (DOMOTIQ_DB_URL,
+# DOMOTIQ_DB_USER, DOMOTIQ_DB_PASSWORD). Environment variables win.
+# NEVER commit config/domotiq.properties (it is gitignored).
+
+db.url=jdbc:mysql://localhost:3306/domotiq?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+db.user=your_mysql_username
+db.password=your_mysql_password
