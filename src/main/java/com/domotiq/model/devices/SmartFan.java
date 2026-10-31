@@ -18,6 +18,9 @@ public class SmartFan extends Device {
     }
 
     @Override
+    public int nominalWatts() { return 60; }
+
+    @Override
     public String onLabel() { return "ON"; }
 
     @Override

@@ -18,6 +18,9 @@ public class SmartLight extends Device {
     }
 
     @Override
+    public int nominalWatts() { return 15; }
+
+    @Override
     public String onLabel() { return "ON"; }
 
     @Override

@@ -32,10 +32,12 @@ public class DashboardPanel extends JPanel {
     private final JLabel onlineValue = Theme.label("0", 30, Font.BOLD, Theme.GREEN);
     private final JLabel offlineValue = Theme.label("0", 30, Font.BOLD, Theme.RED);
     private final JLabel activeValue = Theme.label("0", 30, Font.BOLD, Theme.AMBER);
+    private final JLabel automationsValue = Theme.label("0", 30, Font.BOLD,
+            new Color(120, 200, 255));
     private final JPanel categoryRow = Theme.hRow(10);
     private final JPanel quickControls = new JPanel(new java.awt.FlowLayout(
             java.awt.FlowLayout.LEFT, 14, 14));
-    private final JPanel stats = new JPanel(new GridLayout(0, 4, 16, 0));
+    private final JPanel stats = new JPanel(new GridLayout(0, 5, 16, 0));
     private final JTable activityTable =
             UiTables.styledTable(new String[]{"When", "Device", "Action", "From", "To"}, 0);
 
@@ -50,12 +52,13 @@ public class DashboardPanel extends JPanel {
         stats.add(statCard("Online", onlineValue));
         stats.add(statCard("Offline", offlineValue));
         stats.add(statCard("Active (ON / LOCKED)", activeValue));
+        stats.add(statCard("Automations fired today", automationsValue));
 
-        // adaptive stat row: 2x2 once the window gets narrow
+        // adaptive stat row: 3+2 once the window gets narrow
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentResized(java.awt.event.ComponentEvent e) {
-                int wanted = getWidth() < 900 ? 2 : 4;
+                int wanted = getWidth() < 900 ? 2 : 5;
                 if (((GridLayout) stats.getLayout()).getColumns() != wanted) {
                     stats.setLayout(new GridLayout(0, wanted, 16, 16));
                     stats.revalidate();
@@ -133,6 +136,12 @@ public class DashboardPanel extends JPanel {
         onlineValue.setText(String.valueOf(controller.countOnline()));
         offlineValue.setText(String.valueOf(controller.countOffline()));
         activeValue.setText(String.valueOf(controller.countActive()));
+        try {
+            automationsValue.setText(String.valueOf(main.getAutomationController()
+                    .countFiredToday(main.getUser().getId())));
+        } catch (SQLException ex) {
+            automationsValue.setText("—");
+        }
 
         categoryRow.removeAll();
         Map<DeviceType, Long> counts = controller.countByType();
@@ -179,10 +188,14 @@ public class DashboardPanel extends JPanel {
             List<ActivityLog> logs =
                     main.getActivityController().recent(main.getUser().getId(), 8);
             for (ActivityLog log : logs) {
+                String action = prettyAction(log.getAction());
+                if ("AUTOMATION".equals(log.getActor())) {
+                    action = "⚡ " + action + " (auto)";
+                }
                 model.addRow(new Object[]{
                         log.getPerformedAt() == null ? "" : TIME_FMT.format(log.getPerformedAt()),
                         log.getDeviceName(),
-                        prettyAction(log.getAction()),
+                        action,
                         dash(log.getPreviousStatus()),
                         dash(log.getNewStatus())});
             }

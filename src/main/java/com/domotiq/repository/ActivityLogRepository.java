@@ -13,12 +13,22 @@ import java.util.List;
 
 public class ActivityLogRepository {
 
+    public static final String ACTOR_USER = "USER";
+    public static final String ACTOR_AUTOMATION = "AUTOMATION";
+
     public ActivityLog insert(int userId, Integer deviceId, String deviceName, String action,
                               String previousStatus, String newStatus) throws SQLException {
+        return insert(userId, deviceId, deviceName, action, previousStatus, newStatus,
+                ACTOR_USER);
+    }
+
+    public ActivityLog insert(int userId, Integer deviceId, String deviceName, String action,
+                              String previousStatus, String newStatus, String actor)
+            throws SQLException {
         String sql = """
                 INSERT INTO activity_logs
-                    (user_id, device_id, device_name, action, previous_status, new_status)
-                VALUES (?, ?, ?, ?, ?, ?)""";
+                    (user_id, device_id, device_name, action, previous_status, new_status, actor)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""";
         try (PreparedStatement ps = DatabaseConnection.get()
                 .prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, userId);
@@ -31,11 +41,12 @@ public class ActivityLogRepository {
             ps.setString(4, action);
             ps.setString(5, previousStatus);
             ps.setString(6, newStatus);
+            ps.setString(7, actor);
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 keys.next();
                 return new ActivityLog(keys.getLong(1), userId, deviceId, deviceName,
-                        action, previousStatus, newStatus, java.time.LocalDateTime.now());
+                        action, previousStatus, newStatus, java.time.LocalDateTime.now(), actor);
             }
         }
     }
@@ -43,7 +54,7 @@ public class ActivityLogRepository {
     public List<ActivityLog> findByUser(int userId, int limit) throws SQLException {
         String sql = """
                 SELECT log_id, user_id, device_id, device_name, action,
-                       previous_status, new_status, performed_at
+                       previous_status, new_status, performed_at, actor
                 FROM activity_logs
                 WHERE user_id = ?
                 ORDER BY performed_at DESC, log_id DESC
@@ -64,7 +75,8 @@ public class ActivityLogRepository {
                             rs.getString("action"),
                             rs.getString("previous_status"),
                             rs.getString("new_status"),
-                            ts == null ? null : ts.toLocalDateTime()));
+                            ts == null ? null : ts.toLocalDateTime(),
+                            rs.getString("actor")));
                 }
             }
         }

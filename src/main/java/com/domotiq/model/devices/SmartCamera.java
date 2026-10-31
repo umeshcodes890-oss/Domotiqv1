@@ -19,6 +19,9 @@ public class SmartCamera extends Device {
     }
 
     @Override
+    public int nominalWatts() { return 12; }
+
+    @Override
     public String onLabel() { return "MONITORING"; }
 
     @Override

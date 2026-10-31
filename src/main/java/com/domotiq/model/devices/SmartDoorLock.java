@@ -18,6 +18,9 @@ public class SmartDoorLock extends Device {
     }
 
     @Override
+    public int nominalWatts() { return 3; }
+
+    @Override
     public String onLabel() { return "LOCKED"; }
 
     @Override

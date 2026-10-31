@@ -24,6 +24,9 @@ public class SmartSensor extends Device {
     }
 
     @Override
+    public int nominalWatts() { return 2; }
+
+    @Override
     public String onLabel() { return "ARMED"; }
 
     @Override

@@ -21,7 +21,7 @@ cp ../config/domotiq.properties.example ../config/domotiq.properties
 
 # 3. build and run from the project root
 mvn package
-java -jar ../target/domotiq-1.0.0.jar
+java -jar ../target/domotiq-1.1.0.jar
 ```
 
 The working directory matters: the app loads `config/domotiq.properties`
@@ -30,7 +30,9 @@ relative to the folder it is launched from.
 ## Related files in the repository
 
 - `../README.md` — repository overview and setup guide
-- `../database/init.sql` — MySQL schema (5 tables, FKs, constraints)
+- `../database/init.sql` — MySQL schema (8 tables, FKs, constraints)
+- `../database/migration_v1.1.sql` — one-time upgrade for an existing v1.0
+  database (adds automations, actions, energy tables + activity actor column)
 - `../src/main/java/com/domotiq/` — source tree (see module map in the
   project description)
 

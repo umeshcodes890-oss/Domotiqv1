@@ -56,7 +56,10 @@ mysql -u root -p < database/init.sql
 ```
 
 Creates schema `domotiq` with tables `users`, `rooms`, `devices`,
-`device_settings`, `activity_logs` (PKs, FKs, unique and check constraints).
+`device_settings`, `activity_logs`, `automations`, `automation_actions`,
+`energy_readings` (PKs, FKs, unique and check constraints).
+Upgrading an existing v1.0 database? Run once instead:
+`mysql -u root -p < database/migration_v1.1.sql`
 
 ### 2. Provide credentials (never in source code)
 
@@ -79,7 +82,7 @@ cp config/domotiq.properties.example config/domotiq.properties
 
 ```bash
 mvn package
-java -jar target/domotiq-1.0.0.jar
+java -jar target/domotiq-1.1.0.jar
 ```
 
 or during development: `mvn exec:java`.
@@ -99,3 +102,10 @@ or during development: `mvn exec:java`.
 - **Simulation** — sensors emit drifting temperature/humidity and motion/smoke
   events every 4 s; devices can be manually pushed offline/online; offline
   devices reject commands.
+- **Scenes & Automations (v1.1)** — manual scenes, weekday time schedules
+  (with optional active window) and sensor-threshold rules, each with an
+  ordered step list, enable toggle and cooldown; automated actions are logged
+  as `AUTOMATION` in History.
+- **Energy monitoring (v1.1)** — estimated daily kWh from nameplate wattage ×
+  simulated uptime, with a hand-painted 7-day bar chart and per-device month
+  totals. Estimates only — no physical meters.

@@ -7,6 +7,7 @@ import javax.swing.Timer;
 import java.awt.event.ActionEvent;
 import java.util.List;
 import java.util.Random;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -24,6 +25,8 @@ public class DeviceSimulator {
     private final Random random = new Random();
     private final Supplier<List<Device>> deviceSource;
     private Consumer<Device> onChange = d -> { };
+    private BiConsumer<SmartSensor, String> onSensorReading = (s, r) -> { };
+    private EnergyTracker energyTracker;
 
     /** Temperature drift model: one baseline per sensor id. */
     private double temperatureBase = 22.0;
@@ -47,15 +50,32 @@ public class DeviceSimulator {
         this.onChange = onChange == null ? d -> { } : onChange;
     }
 
+    public void setOnSensorReading(BiConsumer<SmartSensor, String> onSensorReading) {
+        this.onSensorReading = onSensorReading == null ? (s, r) -> { } : onSensorReading;
+    }
+
+    /** When set, every powered-on online device accrues estimated kWh each tick. */
+    public void setEnergyTracker(EnergyTracker energyTracker) {
+        this.energyTracker = energyTracker;
+    }
+
     private void tick(ActionEvent e) {
         for (Device device : deviceSource.get()) {
-            if (!device.isOnline() || !(device instanceof SmartSensor sensor) || !sensor.isOn()) {
+            if (!device.isOnline() || !device.isOn()) {
+                continue;
+            }
+            if (energyTracker != null) {
+                energyTracker.accumulate(device, TICK_MS / 1000);
+            }
+            if (!(device instanceof SmartSensor sensor)) {
                 continue;
             }
             String kind = sensor.getSettings().getOrDefault(
                     SmartSensor.SENSOR_KIND, "TEMPERATURE");
-            sensor.setLastReading(nextReading(kind));
+            String reading = nextReading(kind);
+            sensor.setLastReading(reading);
             onChange.accept(sensor);
+            onSensorReading.accept(sensor, reading);
         }
     }
 

@@ -22,7 +22,8 @@ public class HistoryPanel extends JPanel {
     private final JComboBox<Integer> limitCombo =
             new JComboBox<>(new Integer[]{50, 100, 200, 500});
     private final javax.swing.JTable table = UiTables.styledTable(
-            new String[]{"Date & time", "Device", "Action", "Previous status", "New status"}, 0);
+            new String[]{"Date & time", "Device", "Action", "By",
+                    "Previous status", "New status"}, 0);
 
     public HistoryPanel(MainFrame main) {
         this.main = main;
@@ -66,6 +67,7 @@ public class HistoryPanel extends JPanel {
                         log.getPerformedAt() == null ? "" : TIME_FMT.format(log.getPerformedAt()),
                         log.getDeviceName(),
                         DashboardPanel.prettyAction(log.getAction()),
+                        "AUTOMATION".equals(log.getActor()) ? "Automation" : "You",
                         dash(log.getPreviousStatus()),
                         dash(log.getNewStatus())});
             }

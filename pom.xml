@@ -6,7 +6,7 @@
 
   <groupId>com.domotiq</groupId>
   <artifactId>domotiq</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <packaging>jar</packaging>
 
   <name>DOMOTIQ - Smart Home Automation System</name>

@@ -1,11 +1,15 @@
 package com.domotiq.gui;
 
+import com.domotiq.automation.RuleEngine;
 import com.domotiq.controller.ActivityController;
+import com.domotiq.controller.AutomationController;
 import com.domotiq.controller.DeviceController;
+import com.domotiq.controller.EnergyController;
 import com.domotiq.controller.RoomController;
 import com.domotiq.db.DatabaseConnection;
 import com.domotiq.model.User;
 import com.domotiq.simulation.DeviceSimulator;
+import com.domotiq.simulation.EnergyTracker;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -30,6 +34,11 @@ public class MainFrame extends JFrame {
     private final DeviceController deviceController = new DeviceController();
     private final RoomController roomController = new RoomController();
     private final ActivityController activityController = new ActivityController();
+    private final AutomationController automationController = new AutomationController();
+    private final EnergyController energyController = new EnergyController();
+    private final RuleEngine ruleEngine = new RuleEngine(deviceController, automationController);
+    private final EnergyTracker energyTracker = new EnergyTracker();
+    private final javax.swing.Timer minuteTimer;
     private final DeviceSimulator simulator;
 
     private final CardLayout cards = new CardLayout();
@@ -38,6 +47,8 @@ public class MainFrame extends JFrame {
     private DevicesPanel devicesPanel;
     private RoomsPanel roomsPanel;
     private HistoryPanel historyPanel;
+    private AutomationsPanel automationsPanel;
+    private EnergyPanel energyPanel;
 
     public MainFrame(User user) {
         super("DOMOTIQ - " + user.getFullName());
@@ -50,13 +61,33 @@ public class MainFrame extends JFrame {
 
         try {
             deviceController.loadForUser(user.getId());
+            ruleEngine.loadForUser(user.getId());
         } catch (SQLException ex) {
             showError("Could not load your devices: " + ex.getMessage());
         }
 
         simulator = new DeviceSimulator(deviceController::getDevices);
+        simulator.setEnergyTracker(energyTracker);
+        simulator.setOnSensorReading(ruleEngine::onSensorReading);
+        minuteTimer = new javax.swing.Timer(60_000, e -> onMinute());
         buildUi();
         simulator.start();
+        minuteTimer.setInitialDelay(60_000);
+        minuteTimer.start();
+    }
+
+    /** Scheduler tick: due automations fire and accumulated kWh is persisted. */
+    private void onMinute() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        try {
+            ruleEngine.onMinuteTick(now);
+            energyTracker.flush(energyController.getRepository(), user.getId());
+        } catch (SQLException ex) {
+            showError("Energy/automation bookkeeping failed: " + ex.getMessage());
+        }
+        dashboardPanel.refresh();
+        energyPanel.refresh();
+        automationsPanel.refresh();
     }
 
     private void buildUi() {
@@ -74,9 +105,13 @@ public class MainFrame extends JFrame {
         devicesPanel = new DevicesPanel(this);
         roomsPanel = new RoomsPanel(this);
         historyPanel = new HistoryPanel(this);
+        automationsPanel = new AutomationsPanel(this);
+        energyPanel = new EnergyPanel(this);
         content.add(dashboardPanel, "dashboard");
         content.add(devicesPanel, "devices");
         content.add(roomsPanel, "rooms");
+        content.add(automationsPanel, "automations");
+        content.add(energyPanel, "energy");
         content.add(historyPanel, "history");
         right.add(content, BorderLayout.CENTER);
 
@@ -111,6 +146,8 @@ public class MainFrame extends JFrame {
         side.add(navButton(group, "Dashboard", "dashboard"));
         side.add(navButton(group, "Devices", "devices"));
         side.add(navButton(group, "Rooms", "rooms"));
+        side.add(navButton(group, "Automations", "automations"));
+        side.add(navButton(group, "Energy", "energy"));
         side.add(navButton(group, "History", "history"));
 
         side.add(Box.createVerticalStrut(20));
@@ -181,13 +218,13 @@ public class MainFrame extends JFrame {
                     ? Theme.Mode.LIGHT : Theme.Mode.DARK;
             ThemeManager.save(user.getUsername(), next);
             Theme.apply(next);
-            simulator.stop();
+            shutdownTimers();
             dispose();
             SwingUtilities.invokeLater(() -> new MainFrame(user).setVisible(true));
         });
         refreshBtn.addActionListener(e -> refreshAll());
         logoutBtn.addActionListener(e -> {
-            simulator.stop();
+            shutdownTimers();
             DatabaseConnection.close();
             dispose();
             SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
@@ -195,13 +232,33 @@ public class MainFrame extends JFrame {
         return bar;
     }
 
+    private void shutdownTimers() {
+        simulator.stop();
+        minuteTimer.stop();
+        try {
+            energyTracker.flush(energyController.getRepository(), user.getId());
+        } catch (SQLException ignored) {
+            // a lost final minute of estimates is acceptable on shutdown
+        }
+    }
+
     private void onCardShown(String card) {
         switch (card) {
             case "dashboard" -> dashboardPanel.refresh();
             case "devices" -> devicesPanel.refresh();
             case "rooms" -> roomsPanel.refresh();
+            case "automations" -> automationsPanel.refresh();
+            case "energy" -> energyPanel.refresh();
             case "history" -> historyPanel.refresh();
             default -> { }
+        }
+    }
+
+    public void reloadAutomations() {
+        try {
+            ruleEngine.loadForUser(user.getId());
+        } catch (SQLException ex) {
+            showError("Could not reload automations: " + ex.getMessage());
         }
     }
 
@@ -209,6 +266,8 @@ public class MainFrame extends JFrame {
         dashboardPanel.refresh();
         devicesPanel.refresh();
         roomsPanel.refresh();
+        automationsPanel.refresh();
+        energyPanel.refresh();
         historyPanel.refresh();
     }
 
@@ -223,6 +282,9 @@ public class MainFrame extends JFrame {
     public DeviceController getDeviceController() { return deviceController; }
     public RoomController getRoomController() { return roomController; }
     public ActivityController getActivityController() { return activityController; }
+    public AutomationController getAutomationController() { return automationController; }
+    public EnergyController getEnergyController() { return energyController; }
+    public RuleEngine getRuleEngine() { return ruleEngine; }
 
     void showError(String message) {
         JOptionPane.showMessageDialog(this, message, "DOMOTIQ", JOptionPane.ERROR_MESSAGE);

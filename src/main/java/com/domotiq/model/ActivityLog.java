@@ -11,6 +11,7 @@ public class ActivityLog {
     private String previousStatus;
     private String newStatus;
     private LocalDateTime performedAt;
+    private String actor = "USER";
 
     public ActivityLog() {
     }
@@ -18,6 +19,13 @@ public class ActivityLog {
     public ActivityLog(long id, int userId, Integer deviceId, String deviceName,
                        String action, String previousStatus, String newStatus,
                        LocalDateTime performedAt) {
+        this(id, userId, deviceId, deviceName, action, previousStatus, newStatus,
+                performedAt, "USER");
+    }
+
+    public ActivityLog(long id, int userId, Integer deviceId, String deviceName,
+                       String action, String previousStatus, String newStatus,
+                       LocalDateTime performedAt, String actor) {
         this.id = id;
         this.userId = userId;
         this.deviceId = deviceId;
@@ -26,6 +34,7 @@ public class ActivityLog {
         this.previousStatus = previousStatus;
         this.newStatus = newStatus;
         this.performedAt = performedAt;
+        this.actor = actor == null ? "USER" : actor;
     }
 
     public long getId() { return id; }
@@ -44,4 +53,6 @@ public class ActivityLog {
     public void setNewStatus(String newStatus) { this.newStatus = newStatus; }
     public LocalDateTime getPerformedAt() { return performedAt; }
     public void setPerformedAt(LocalDateTime performedAt) { this.performedAt = performedAt; }
+    public String getActor() { return actor; }
+    public void setActor(String actor) { this.actor = actor; }
 }

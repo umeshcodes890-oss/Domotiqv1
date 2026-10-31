@@ -93,18 +93,32 @@ public class DeviceController {
     /** Toggle primary power (or LOCK/UNLOCK for locks). Throws when offline. */
     public void togglePower(Device device) throws SQLException {
         Device d = require(device.getId());
+        setPower(d, !d.isOn(), ActivityLogRepository.ACTOR_USER);
+    }
+
+    /** Set power to an explicit target, logging the change. */
+    public void setPower(Device device, boolean target, String actor) throws SQLException {
+        Device d = require(device.getId());
         if (!d.isOnline()) {
             throw new IllegalStateException(
                     d.getName() + " is offline - control commands cannot be delivered.");
         }
+        if (d.isOn() == target) {
+            return;
+        }
         String before = stateLabel(d);
-        d.setPower(!d.isOn());
+        d.setPower(target);
         deviceRepository.updatePowerState(d);
         activityLogRepository.insert(currentUserId, d.getId(), d.getName(),
-                powerAction(d, d.isOn()), before, stateLabel(d));
+                powerAction(d, d.isOn()), before, stateLabel(d), actor);
     }
 
     public void applySetting(Device device, String key, String value) throws SQLException {
+        applySetting(device, key, value, ActivityLogRepository.ACTOR_USER);
+    }
+
+    public void applySetting(Device device, String key, String value, String actor)
+            throws SQLException {
         Device d = require(device.getId());
         if (!d.isOnline()) {
             throw new IllegalStateException(
@@ -116,7 +130,7 @@ public class DeviceController {
         String after = d.statusLine();
         if (!before.equals(after)) {
             activityLogRepository.insert(currentUserId, d.getId(), d.getName(),
-                    "SET_" + key.toUpperCase(), before, after);
+                    "SET_" + key.toUpperCase(), before, after, actor);
         }
     }
 

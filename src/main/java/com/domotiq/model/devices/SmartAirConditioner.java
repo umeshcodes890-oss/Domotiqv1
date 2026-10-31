@@ -18,6 +18,9 @@ public class SmartAirConditioner extends Device {
     }
 
     @Override
+    public int nominalWatts() { return 1200; }
+
+    @Override
     public String onLabel() { return "ON"; }
 
     @Override

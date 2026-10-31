@@ -62,8 +62,31 @@ unassigned (foreign key `ON DELETE SET NULL`).
 
 ### 3.6 Activity history
 Every registration, power change, setting change, deletion and connectivity
-event is logged with device name, action, previous status, new status and
-timestamp, browsable in the History screen and on the dashboard.
+event is logged with device name, action, previous status, new status, actor
+(you or automation) and timestamp, browsable in the History screen and on the
+dashboard.
+
+### 3.7 Scenes & automations (v1.1)
+Per-user rules executed by an in-app event pipeline:
+
+| Trigger  | Behaviour |
+|----------|-----------|
+| Scene    | Manual only — press *Run now* to execute an ordered list of device steps (Turn ON/OFF/LOCK/UNLOCK, or set any device setting). |
+| Schedule | Fires at a chosen HH:mm on selected weekdays, optionally limited to an active time window; missed runs are not replayed after the app restarts more than 10 minutes late. |
+| Sensor   | Watches one simulated sensor's live telemetry; fires when the reading is above/below a threshold or reports detection (motion/smoke). |
+
+Rules can be enabled/disabled, edited and deleted; each carries a cooldown
+(default 10 min) so flapping readings cannot spam devices. Every automated
+change goes through the normal controller path, is persisted, and is logged
+with `actor = AUTOMATION`.
+
+### 3.8 Energy monitoring (v1.1)
+Estimated consumption derived from simulated uptime: each device category has
+a nameplate wattage, the simulator accumulates `watts × seconds ON`, and a
+minute-level flush upserts daily kWh into `energy_readings`. The Energy screen
+shows a hand-painted (pure `Graphics2D`) 7-day bar chart, per-device monthly
+totals, and derived run-hours. Estimates exist only while the app runs — no
+physical meters are involved.
 
 ## 4. Architecture
 
@@ -91,7 +114,17 @@ Key object-oriented pieces:
 - **`DeviceController`** — single funnel for every mutation: validate →
   mutate model → write-through to MySQL → record activity log.
 - **`DeviceSimulator`** — `javax.swing.Timer` producing drifting sensor
-  telemetry; the seam where a real IoT client would plug in.
+  telemetry and uptime energy deltas; the seam where a real IoT client would
+  plug in.
+- **`RuleEngine` (v1.1)** — consumes three event kinds (sensor readings,
+  minute ticks, manual scene runs), matches enabled automations, enforces
+  cooldowns, and executes steps through `DeviceController` with
+  `actor = AUTOMATION`.
+- **`EnergyTracker` (v1.1)** — accumulates kWh deltas in memory and flushes
+  them once a minute via `EnergyRepository` (`INSERT … ON DUPLICATE KEY
+  UPDATE`).
+- **`AutomationController` / `EnergyController`** — validation and
+  aggregation for the two v1.1 screens, same layering as everything else.
 
 ### How to add a new device category
 
@@ -106,7 +139,7 @@ automatically.
 
 ## 5. Database Design
 
-Schema `domotiq`, five relations:
+Schema `domotiq`, eight relations:
 
 | Table             | Purpose                                   | Keys |
 |-------------------|-------------------------------------------|------|
@@ -114,7 +147,10 @@ Schema `domotiq`, five relations:
 | `rooms`           | per-user room catalogue                   | PK room_id; FK user_id → users (CASCADE); unique (user_id, room_name) |
 | `devices`         | device records incl. power + connection   | PK device_id; FK user_id (CASCADE), FK room_id (SET NULL) |
 | `device_settings` | generic key/value settings per device     | PK setting_id; FK device_id (CASCADE); unique (device_id, setting_key) |
-| `activity_logs`   | immutable audit trail                     | PK log_id; FK user_id (CASCADE), FK device_id (SET NULL) |
+| `activity_logs`   | immutable audit trail incl. actor         | PK log_id; FK user_id (CASCADE), FK device_id (SET NULL) |
+| `automations`     | scene/schedule/sensor rule definitions (v1.1) | PK automation_id; FK user_id (CASCADE), FK sensor device (SET NULL) |
+| `automation_actions` | ordered device steps per rule (v1.1)   | PK action_id; FK automation_id (CASCADE), FK device_id (CASCADE) |
+| `energy_readings` | daily estimated kWh per device (v1.1)    | PK reading_id; FK device_id (CASCADE), FK user_id (CASCADE); unique (device_id, reading_date) |
 
 The key/value `device_settings` table is what keeps the schema stable while
 device categories evolve.
@@ -135,11 +171,13 @@ com.domotiq
 ├── config               DatabaseConfig
 ├── db                   DatabaseConnection
 ├── util                 PasswordHasher
-├── model (+ .devices)   domain objects, Device hierarchy
+├── model (+ .devices)   domain objects, Device hierarchy, Automation rules
 ├── factory              DeviceFactory
-├── repository           JDBC data access (4 classes)
-├── controller           business orchestration (4 classes)
-├── simulation           DeviceSimulator (live telemetry)
-└── gui                  13 Swing classes incl. Theme/ThemeManager
+├── repository           JDBC data access (6 classes)
+├── controller           business orchestration (6 classes)
+├── automation           RuleEngine (event pipeline, cooldowns)
+├── simulation           DeviceSimulator + EnergyTracker
+└── gui                  18 Swing classes incl. Theme/ThemeManager,
+                         Automations/Energy screens, hand-painted chart
                          (dark + light palettes, responsive layouts)
 ```

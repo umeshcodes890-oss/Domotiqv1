@@ -106,6 +106,12 @@ public abstract class Device {
     /** One-line human readable operating summary, used in cards and logs. */
     public abstract String statusLine();
 
+    /**
+     * Nameplate draw used for the ENERGY ESTIMATES in the simulator. These are
+     * typical figures for the category, not measurements from real hardware.
+     */
+    public abstract int nominalWatts();
+
     /** Settings this category exposes to the GUI and the database. */
     public abstract List<SettingDefinition> settingDefinitions();
 
