@@ -80,8 +80,8 @@ public class AutomationDialog extends JDialog {
 
     private List<AutomationAction> uiActions = new ArrayList<>();
 
-    public AutomationDialog(MainFrame main, Automation existing) {
-        super(main, existing == null ? "New automation" : "Edit automation", true);
+    public AutomationDialog(MainFrame main, Automation existing, String title) {
+        super(main, title, true);
         this.main = main;
         this.working = existing == null ? new Automation() : existing;
         this.uiActions = new ArrayList<>();
@@ -106,15 +106,11 @@ public class AutomationDialog extends JDialog {
         typeCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
 
         conditionCards.setOpaque(false);
-        conditionCards.setPreferredSize(new Dimension(0, 190));
-        conditionCards.setMaximumSize(new Dimension(Integer.MAX_VALUE, 190));
         conditionCards.add(buildSceneCard(), CARD_SCENE);
         conditionCards.add(buildScheduleCard(), CARD_SCHEDULE);
         conditionCards.add(buildSensorCard(), CARD_SENSOR);
-        JPanel condWrap = new JPanel(new BorderLayout());
-        condWrap.setOpaque(false);
-        condWrap.add(conditionCards, BorderLayout.CENTER);
-        form.add(condWrap);
+        conditionCards.setAlignmentX(Component.LEFT_ALIGNMENT);
+        form.add(conditionCards);
         form.add(strut(14));
 
         form.add(buildActionsSection());
@@ -184,9 +180,9 @@ public class AutomationDialog extends JDialog {
     private JPanel buildSceneCard() {
         JPanel p = Theme.card();
         p.setLayout(new BorderLayout());
-        p.add(Theme.label("A scene runs its steps only when you press Run. "
-                + "Nothing triggers it automatically.", 12, Font.ITALIC,
-                Theme.TEXT_MUTED), BorderLayout.CENTER);
+        p.add(Theme.label("<html>A scene runs its steps only when you press Run.<br>"
+                + "Nothing triggers it automatically.</html>", 12, Font.ITALIC,
+                Theme.TEXT_MUTED), BorderLayout.NORTH);
         return p;
     }
 
@@ -267,47 +263,41 @@ public class AutomationDialog extends JDialog {
 
     private JPanel buildActionsSection() {
         JPanel outer = Theme.card();
-        outer.setLayout(new BorderLayout(0, 8));
+        outer.setLayout(new BorderLayout(0, 10));
         outer.setAlignmentX(Component.LEFT_ALIGNMENT);
         outer.add(Theme.label("Steps - executed in order", 13, Font.BOLD, Theme.TEXT),
                 BorderLayout.NORTH);
 
-        JPanel builder = new JPanel(new GridLayout(0, 1, 0, 6));
+        // two fixed columns: controls always fit the card instead of wrapping off-screen
+        JPanel builder = new JPanel(new GridLayout(0, 2, 14, 12));
         builder.setOpaque(false);
 
-        JPanel r1 = Theme.hRow(8);
-        r1.add(label13("Device"));
         style(actionDeviceCombo);
-        actionDeviceCombo.setPreferredSize(new Dimension(230, 36));
-        r1.add(actionDeviceCombo);
-        r1.add(label13("Action"));
+        actionDeviceCombo.setRenderer(new ListCellWrap<Device>(
+                d -> d == null ? "" : d.getName() + "  ·  " + d.getDeviceType().getLabel()));
         style(actionKindCombo);
-        actionKindCombo.setPreferredSize(new Dimension(160, 36));
-        r1.add(actionKindCombo);
-
-        JPanel r2 = Theme.hRow(8);
         style(settingCombo);
-        settingCombo.setPreferredSize(new Dimension(200, 36));
         settingCombo.setRenderer(new ListCellWrap<Device.SettingDefinition>(
                 d -> d == null ? "" : d.label));
-        r2.add(settingCombo);
         style(valueCard);
         valueCard.setOpaque(false);
-        valueCard.setPreferredSize(new Dimension(200, 36));
         sliderValueField.setPreferredSize(new Dimension(190, 34));
         optionValueCombo.setPreferredSize(new Dimension(190, 34));
         style(optionValueCombo);
         toggleValueField.setVisible(false);
         valueCard.add(sliderValueField, "slider");
         valueCard.add(optionValueCombo, "option");
-        r2.add(valueCard);
+
+        builder.add(labeledField("Device", actionDeviceCombo));
+        builder.add(labeledField("Action", actionKindCombo));
+        builder.add(labeledField("Setting", settingCombo));
+        builder.add(labeledField("Value", valueCard));
+        outer.add(builder, BorderLayout.CENTER);
+
         JButton addBtn = Theme.button("+ Add step", Theme.ACCENT);
         addBtn.addActionListener(e -> addStepFromForm());
-        r2.add(addBtn);
-
-        builder.add(r1);
-        builder.add(r2);
-        outer.add(builder, BorderLayout.CENTER);
+        JPanel addRow = Theme.hRow(8);
+        addRow.add(addBtn);
 
         actionList.setOpaque(false);
         actionList.setLayout(new javax.swing.BoxLayout(actionList,
@@ -318,8 +308,23 @@ public class AutomationDialog extends JDialog {
         listScroll.setBorder(BorderFactory.createEmptyBorder());
         listScroll.setPreferredSize(new Dimension(0, 120));
         listScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
-        outer.add(listScroll, BorderLayout.SOUTH);
+
+        JPanel bottom = new JPanel(new BorderLayout(0, 8));
+        bottom.setOpaque(false);
+        bottom.add(addRow, BorderLayout.NORTH);
+        bottom.add(listScroll, BorderLayout.CENTER);
+        outer.add(bottom, BorderLayout.SOUTH);
         return outer;
+    }
+
+    /** Caption above a control, filling one column of the steps grid. */
+    private static JPanel labeledField(String caption, JComponent field) {
+        JPanel p = new JPanel(new BorderLayout(0, 4));
+        p.setOpaque(false);
+        p.add(Theme.label(caption, 11, Font.BOLD, Theme.TEXT_MUTED), BorderLayout.NORTH);
+        field.setPreferredSize(new Dimension(200, 36));
+        p.add(field, BorderLayout.CENTER);
+        return p;
     }
 
     /* ---------- combo contents ---------- */
@@ -465,13 +470,15 @@ public class AutomationDialog extends JDialog {
 
     private void prefill() {
         populateDeviceCombos();
-        if (working.getId() != -1) {
-            nameField.setText(working.getName());
+        if (working.getTriggerType() != null) {
             typeCombo.setSelectedIndex(switch (working.getTriggerType()) {
                 case SCENE -> 0;
                 case SCHEDULE -> 1;
                 case SENSOR -> 2;
             });
+        }
+        if (working.getId() != -1) {
+            nameField.setText(working.getName());
             fireTimeField.setText(working.getFireTime() == null
                     ? "22:30" : String.format("%02d:%02d",
                     working.getFireTime().getHour(), working.getFireTime().getMinute()));
@@ -517,6 +524,16 @@ public class AutomationDialog extends JDialog {
             default -> CARD_SCENE;
         };
         ((CardLayout) conditionCards.getLayout()).show(conditionCards, card);
+        // CardLayout reports the tallest card, so size the strip to the visible one
+        int height = 0;
+        for (Component c : conditionCards.getComponents()) {
+            if (c.isVisible()) {
+                height = c.getPreferredSize().height;
+            }
+        }
+        conditionCards.setPreferredSize(new Dimension(0, height));
+        conditionCards.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
+        revalidate();
     }
 
     private void save() {

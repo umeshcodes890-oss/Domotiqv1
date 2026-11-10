@@ -71,11 +71,10 @@ public class AutomationsPanel extends JPanel {
 
     private void openEditor(boolean sceneShortcut) {
         Automation draft = new Automation();
-        if (sceneShortcut) {
-            draft.setTriggerType(TriggerType.SCENE);
-            draft.setName("");
-        }
-        AutomationDialog dialog = new AutomationDialog(main, draft);
+        draft.setName("");
+        draft.setTriggerType(sceneShortcut ? TriggerType.SCENE : TriggerType.SCHEDULE);
+        AutomationDialog dialog = new AutomationDialog(
+                main, draft, sceneShortcut ? "New scene" : "New automation");
         dialog.setVisible(true);
         if (dialog.isSaved()) {
             main.reloadAutomations();
@@ -142,7 +141,7 @@ public class AutomationsPanel extends JPanel {
             right.add(b);
         }
         edit.addActionListener(e -> {
-            AutomationDialog d = new AutomationDialog(main, a);
+            AutomationDialog d = new AutomationDialog(main, a, "Edit automation");
             d.setVisible(true);
             if (d.isSaved()) {
                 main.reloadAutomations();
