@@ -12,6 +12,8 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -32,15 +34,23 @@ public class DeviceCard extends JPanel {
         this.main = main;
         this.device = device;
         this.showManage = showManage;
-        setLayout(new BorderLayout(10, 6));
-        Theme.card().setOpaque(false);
+        setLayout(new BorderLayout(8, 4));
         setOpaque(false);
         setBackground(Theme.CARD);
         setBorder(BorderFactory.createCompoundBorder(
-                new RoundedBorder(16),
-                BorderFactory.createEmptyBorder(14, 16, 14, 16)));
-        setPreferredSize(new Dimension(348, 158));
+                new RoundedBorder(14),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+        setPreferredSize(new Dimension(300, 132));
         rebuild(rooms);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g.create();
+        Theme.paintSurface(g2, getWidth(), getHeight(), 16,
+                Theme.CARD_TOP, Theme.CARD_BOTTOM);
+        g2.dispose();
     }
 
     private void rebuild(List<Room> rooms) {
@@ -51,18 +61,22 @@ public class DeviceCard extends JPanel {
         JPanel left = Theme.hRow(8);
         left.add(Theme.statusDot(device.isOnline()
                 ? (device.isOn() ? Theme.GREEN : Theme.ACCENT) : Theme.RED));
-        left.add(Theme.label(icon() + "  " + device.getName(), 16, Font.BOLD, Theme.TEXT));
+        JLabel iconLabel = new JLabel(icon());
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 13));
+        iconLabel.setForeground(Theme.TEXT);
+        left.add(iconLabel);
+        left.add(Theme.label(device.getName(), 14, Font.BOLD, Theme.TEXT));
         top.add(left, BorderLayout.WEST);
 
         String roomName = device.getRoomId() == null ? "Unassigned"
                 : rooms.stream().filter(r -> r.getId() == device.getRoomId())
                         .map(Room::getName).findFirst().orElse("Unassigned");
         top.add(Theme.label(device.getDeviceType().getLabel() + " · " + roomName,
-                12, Font.PLAIN, Theme.TEXT_MUTED), BorderLayout.EAST);
+                11, Font.PLAIN, Theme.TEXT_MUTED), BorderLayout.EAST);
 
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setOpaque(false);
-        JLabel status = Theme.label(device.statusLine(), 13, Font.PLAIN,
+        JLabel status = Theme.label(device.statusLine(), 12, Font.PLAIN,
                 device.isOnline() ? Theme.TEXT : Theme.AMBER);
         bottom.add(status, BorderLayout.WEST);
 
@@ -72,7 +86,8 @@ public class DeviceCard extends JPanel {
         String offText = lock ? "Unlock" : "Off";
         toggleButton = Theme.button(device.isOn() ? offText : onText,
                 device.isOnline() ? (device.isOn() ? Theme.RED : Theme.GREEN) : Color.GRAY);
-        toggleButton.setFont(Theme.font(14, Font.BOLD));
+        toggleButton.setFont(Theme.font(12, Font.BOLD));
+        toggleButton.setBorder(BorderFactory.createEmptyBorder(7, 16, 7, 16));
         toggleButton.setEnabled(device.isOnline());
         toggleButton.addActionListener(e -> {
             try {
@@ -87,14 +102,15 @@ public class DeviceCard extends JPanel {
         actions.add(toggleButton);
         if (showManage) {
             var manage = Theme.ghostButton("Manage", Theme.ACCENT);
-            manage.setFont(Theme.font(14, Font.BOLD));
+            manage.setFont(Theme.font(12, Font.BOLD));
+            manage.setBorder(BorderFactory.createEmptyBorder(7, 12, 7, 12));
             manage.addActionListener(e -> new DeviceDialog(main, device, true).setVisible(true));
             actions.add(manage);
         }
         bottom.add(actions, BorderLayout.EAST);
 
         add(top, BorderLayout.NORTH);
-        add(Theme.label(simulatedHint(), 11, Font.ITALIC, Theme.TEXT_MUTED), BorderLayout.CENTER);
+        add(Theme.label(simulatedHint(), 10, Font.ITALIC, Theme.TEXT_MUTED), BorderLayout.CENTER);
         add(bottom, BorderLayout.SOUTH);
         revalidate();
         repaint();

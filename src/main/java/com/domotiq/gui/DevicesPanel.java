@@ -24,8 +24,7 @@ public class DevicesPanel extends JPanel {
     private final JTextField searchField = Theme.textField("Search devices...", 22);
     private final JComboBox<String> typeFilter = new JComboBox<>();
     private final JComboBox<String> roomFilter = new JComboBox<>();
-    private final JPanel grid = new JPanel(new java.awt.FlowLayout(
-            java.awt.FlowLayout.LEFT, 16, 16));
+    private final JPanel grid = new JPanel(new GridLayout(0, 3, 16, 16));
 
     public DevicesPanel(MainFrame main) {
         this.main = main;
@@ -60,9 +59,23 @@ public class DevicesPanel extends JPanel {
         grid.setOpaque(false);
         JScrollPane scroll = new JScrollPane(grid);
         scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
+        scroll.getViewport().setOpaque(true);
+        scroll.getViewport().add(new GradientBackdrop(), 0);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        // adaptive columns: cards always fit the viewport, never clip
+        scroll.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                int cols = Math.max(1, e.getComponent().getWidth() / 316);
+                GridLayout gl = (GridLayout) grid.getLayout();
+                if (gl.getColumns() != cols) {
+                    gl.setColumns(cols);
+                    grid.revalidate();
+                }
+            }
+        });
 
         add(bar, BorderLayout.NORTH);
         add(scroll, BorderLayout.CENTER);
@@ -125,7 +138,8 @@ public class DevicesPanel extends JPanel {
         grid.removeAll();
         if (visible.isEmpty()) {
             JPanel empty = Theme.card();
-            empty.setPreferredSize(new Dimension(0, 120));
+            empty.setMinimumSize(new Dimension(300, 120));
+            empty.setPreferredSize(new Dimension(300, 120));
             empty.add(Theme.label(
                     main.getDeviceController().countAll() == 0
                             ? "No devices yet. Click \"+ Add device\" to register your first simulated IoT device."

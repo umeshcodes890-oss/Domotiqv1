@@ -45,8 +45,7 @@ public class EnergyChartPanel extends JComponent {
         int left = 58, bottom = 34, top = 14, right = 12;
         int plotW = w - left - right, plotH = h - top - bottom;
 
-        g2.setColor(Theme.CARD);
-        g2.fillRoundRect(0, 0, w, h, 18, 18);
+        Theme.paintSurface(g2, w, h, 18, Theme.CARD_TOP, Theme.CARD_BOTTOM);
 
         double max = bars.stream().mapToDouble(Bar::value).max().orElse(0);
         if (max <= 0) {

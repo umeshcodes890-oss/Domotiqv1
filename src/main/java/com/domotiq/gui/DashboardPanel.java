@@ -35,8 +35,7 @@ public class DashboardPanel extends JPanel {
     private final JLabel automationsValue = Theme.label("0", 30, Font.BOLD,
             new Color(120, 200, 255));
     private final JPanel categoryRow = Theme.hRow(10);
-    private final JPanel quickControls = new JPanel(new java.awt.FlowLayout(
-            java.awt.FlowLayout.LEFT, 14, 14));
+    private final JPanel quickControls = new JPanel(new GridLayout(0, 3, 14, 14));
     private final JPanel stats = new JPanel(new GridLayout(0, 5, 16, 0));
     private final JTable activityTable =
             UiTables.styledTable(new String[]{"When", "Device", "Action", "From", "To"}, 0);
@@ -82,6 +81,18 @@ public class DashboardPanel extends JPanel {
         JScrollPane quickScroll = scroll(quickControls);
         quickScroll.setPreferredSize(new Dimension(0, 470));
         quickScroll.setMaximumSize(new Dimension(0, 470));
+        // adaptive columns: quick-control cards never clip horizontally
+        quickScroll.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                int cols = Math.max(1, e.getComponent().getWidth() / 316);
+                GridLayout gl = (GridLayout) quickControls.getLayout();
+                if (gl.getColumns() != cols) {
+                    gl.setColumns(cols);
+                    quickControls.revalidate();
+                }
+            }
+        });
         quickSection.add(quickScroll, BorderLayout.CENTER);
 
         JPanel historySection = Theme.card();
@@ -120,7 +131,7 @@ public class DashboardPanel extends JPanel {
         s.setOpaque(false);
         s.getViewport().setOpaque(false);
         s.getViewport().setOpaque(true);
-        s.getViewport().setBackground(Theme.PANEL);
+        s.getViewport().add(new GradientBackdrop(), 0);
         s.setBorder(BorderFactory.createEmptyBorder());
         s.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         return s;

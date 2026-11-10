@@ -12,6 +12,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -48,6 +49,12 @@ public final class Theme {
     public static Color SIDEBAR_BUTTON;
     public static Color SIDEBAR_TEXT;
 
+    /* ----- gradient endpoints (creamy surfaces in light mode) ----- */
+    public static Color BG_TOP;
+    public static Color BG_BOTTOM;
+    public static Color CARD_TOP;
+    public static Color CARD_BOTTOM;
+
     public static Mode mode = Mode.DARK;
 
     private static final String FONT_FAMILY = "Segoe UI";
@@ -81,27 +88,45 @@ public final class Theme {
             SIDEBAR = new Color(19, 25, 40);
             SIDEBAR_BUTTON = new Color(30, 40, 62);
             SIDEBAR_TEXT = new Color(232, 238, 250);
+            BG_TOP = new Color(22, 28, 44);
+            BG_BOTTOM = new Color(12, 16, 26);
+            CARD_TOP = new Color(36, 46, 70);
+            CARD_BOTTOM = new Color(24, 31, 48);
         } else {
-            BACKGROUND = new Color(244, 246, 250);
-            PANEL = new Color(255, 255, 255);
-            PANEL_HOVER = new Color(234, 240, 250);
-            CARD = new Color(255, 255, 255);
-            ACCENT = new Color(37, 99, 235);
-            ACCENT_DARK = new Color(26, 72, 178);
-            GREEN = new Color(22, 163, 74);
-            RED = new Color(220, 38, 38);
+            // creamy light palette: ivory canvas, warm sand gradients
+            BACKGROUND = new Color(250, 244, 232);
+            PANEL = new Color(255, 253, 247);
+            PANEL_HOVER = new Color(247, 240, 226);
+            CARD = new Color(255, 252, 244);
+            ACCENT = new Color(180, 105, 28);       // warm amber-bronze
+            ACCENT_DARK = new Color(140, 80, 18);
+            GREEN = new Color(34, 134, 88);
+            RED = new Color(198, 56, 46);
             AMBER = new Color(217, 119, 6);
-            TEXT = new Color(26, 32, 44);
-            TEXT_MUTED = new Color(100, 112, 132);
-            FIELD_BG = new Color(255, 255, 255);
-            BORDER = new Color(210, 216, 228);
-            INPUT_BORDER = new Color(203, 210, 224);
-            ROW_ALT = new Color(246, 248, 252);
-            GRID = new Color(226, 230, 238);
-            SIDEBAR = new Color(24, 32, 50);
-            SIDEBAR_BUTTON = new Color(41, 54, 82);
-            SIDEBAR_TEXT = new Color(232, 238, 250);
+            TEXT = new Color(43, 38, 32);
+            TEXT_MUTED = new Color(122, 112, 96);
+            FIELD_BG = new Color(255, 253, 246);
+            BORDER = new Color(228, 214, 190);
+            INPUT_BORDER = new Color(222, 206, 178);
+            ROW_ALT = new Color(250, 244, 230);
+            GRID = new Color(236, 224, 202);
+            SIDEBAR = new Color(58, 45, 32);        // warm espresso
+            SIDEBAR_BUTTON = new Color(82, 65, 47);
+            SIDEBAR_TEXT = new Color(245, 238, 224);
+            BG_TOP = new Color(255, 251, 235);      // #FFFBEB ivory
+            BG_BOTTOM = new Color(243, 231, 211);   // warm sand
+            CARD_TOP = new Color(255, 254, 250);
+            CARD_BOTTOM = new Color(250, 240, 222);
         }
+    }
+
+    /** Paints a rounded vertical gradient surface (cards, panels, canvases). */
+    public static void paintSurface(Graphics2D g2, int width, int height, int arc,
+                                    Color top, Color bottom) {
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setPaint(new GradientPaint(0, 0, top, 0, height, bottom));
+        g2.fillRoundRect(0, 0, width, height, arc, arc);
     }
 
     public static Font font(int size, int style) {
@@ -152,7 +177,26 @@ public final class Theme {
     }
 
     public static JTextField textField(String placeholder, int columns) {
-        JTextField f = new JTextField(columns);
+        JTextField f = new JTextField(columns) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (placeholder == null || placeholder.isEmpty()
+                        || !getText().isEmpty()) {
+                    return;
+                }
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g2.setFont(getFont());
+                g2.setColor(Theme.TEXT_MUTED);
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                int x = getInsets().left;
+                int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+                g2.drawString(placeholder, x, y);
+                g2.dispose();
+            }
+        };
         f.setFont(font(14, Font.PLAIN));
         f.setForeground(TEXT);
         f.setCaretColor(TEXT);
@@ -164,16 +208,14 @@ public final class Theme {
         return f;
     }
 
-    /** A rounded card container. */
+    /** A rounded card container with a soft vertical gradient. */
     public static JPanel card() {
         JPanel p = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getBackground());
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                paintSurface(g2, getWidth(), getHeight(), 18,
+                        CARD_TOP, CARD_BOTTOM);
                 g2.dispose();
             }
         };

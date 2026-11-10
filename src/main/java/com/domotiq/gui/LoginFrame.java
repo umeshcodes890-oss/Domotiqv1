@@ -43,8 +43,18 @@ public class LoginFrame extends JFrame {
     }
 
     private void buildUi() {
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(Theme.BACKGROUND);
+        JPanel root = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setPaint(new GradientPaint(0, 0, Theme.BG_TOP,
+                        0, getHeight(), Theme.BG_BOTTOM));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        root.setOpaque(false);
 
         BrandPanel brand = new BrandPanel();
         brand.setPreferredSize(new Dimension(420, 0));
@@ -59,7 +69,6 @@ public class LoginFrame extends JFrame {
         outer.setOpaque(false);
 
         JPanel card = Theme.card();
-        card.setBackground(Theme.PANEL);
         card.setLayout(new BorderLayout(0, 24));
         card.setBorder(BorderFactory.createEmptyBorder(36, 40, 36, 40));
         card.setPreferredSize(new Dimension(400, 400));

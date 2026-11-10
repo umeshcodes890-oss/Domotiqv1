@@ -91,8 +91,18 @@ public class MainFrame extends JFrame {
     }
 
     private void buildUi() {
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(Theme.BACKGROUND);
+        JPanel root = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                var g2 = (java.awt.Graphics2D) g.create();
+                g2.setPaint(new java.awt.GradientPaint(0, 0, Theme.BG_TOP,
+                        0, getHeight(), Theme.BG_BOTTOM));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        root.setOpaque(false);
 
         root.add(buildSidebar(), BorderLayout.WEST);
 
@@ -100,7 +110,7 @@ public class MainFrame extends JFrame {
         right.setOpaque(false);
         right.add(buildHeader(), BorderLayout.NORTH);
 
-        content.setBackground(Theme.BACKGROUND);
+        content.setOpaque(false);
         dashboardPanel = new DashboardPanel(this);
         devicesPanel = new DevicesPanel(this);
         roomsPanel = new RoomsPanel(this);
@@ -151,9 +161,10 @@ public class MainFrame extends JFrame {
         side.add(navButton(group, "History", "history"));
 
         side.add(Box.createVerticalStrut(20));
-        JLabel note = Theme.label("Simulated IoT devices -\nno physical hardware attached.",
+        JLabel note = Theme.label("<html>Simulated IoT devices -<br>no physical hardware.</html>",
                 11, Font.ITALIC, new Color(120, 132, 158));
         note.setAlignmentX(Component.LEFT_ALIGNMENT);
+        note.setMaximumSize(new Dimension(178, 36));
         side.add(note);
 
         return side;
