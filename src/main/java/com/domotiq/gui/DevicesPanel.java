@@ -24,7 +24,7 @@ public class DevicesPanel extends JPanel {
     private final JTextField searchField = Theme.textField("Search devices...", 22);
     private final JComboBox<String> typeFilter = new JComboBox<>();
     private final JComboBox<String> roomFilter = new JComboBox<>();
-    private final JPanel grid = new GradientSurface(new GridLayout(0, 3, 16, 16));
+    private final JPanel grid = new JPanel(new GridLayout(0, 3, 16, 16));
 
     public DevicesPanel(MainFrame main) {
         this.main = main;
@@ -57,7 +57,14 @@ public class DevicesPanel extends JPanel {
         bar.add(right, BorderLayout.EAST);
 
         grid.setOpaque(false);
-        JScrollPane scroll = new JScrollPane(grid);
+        grid.setBorder(BorderFactory.createEmptyBorder(2, 2, 14, 2));
+
+        // the gradient surface is the scroll view; the grid hangs from its top so
+        // GridLayout never stretches a partial last row to fill the viewport
+        JPanel surface = new GradientSurface(new BorderLayout());
+        surface.add(grid, BorderLayout.NORTH);
+
+        JScrollPane scroll = new JScrollPane(surface);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(true);
         scroll.getViewport().setBackground(new java.awt.Color(0, 0, 0, 0));

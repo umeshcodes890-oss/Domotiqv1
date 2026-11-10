@@ -35,7 +35,7 @@ public class DashboardPanel extends JPanel {
     private final JLabel automationsValue = Theme.label("0", 30, Font.BOLD,
             new Color(168, 116, 43));
     private final JPanel categoryRow = Theme.hRow(10);
-    private final JPanel quickControls = new GradientSurface(new GridLayout(0, 3, 14, 14));
+    private final JPanel quickControls = new JPanel(new GridLayout(0, 3, 14, 14));
     private final JPanel stats = new JPanel(new GridLayout(0, 5, 16, 0));
     private final JTable activityTable =
             UiTables.styledTable(new String[]{"When", "Device", "Action", "From", "To"}, 0);
@@ -78,7 +78,14 @@ public class DashboardPanel extends JPanel {
         quickSection.add(Theme.label("Quick controls", 14, Font.BOLD, Theme.TEXT),
                 BorderLayout.NORTH);
         quickControls.setOpaque(false);
-        JScrollPane quickScroll = scroll(quickControls);
+        quickControls.setBorder(BorderFactory.createEmptyBorder(2, 2, 12, 2));
+
+        // the gradient surface is the scroll view; the grid hangs from its top so
+        // GridLayout never stretches a partial last row to fill the viewport
+        JPanel quickSurface = new GradientSurface(new BorderLayout());
+        quickSurface.add(quickControls, BorderLayout.NORTH);
+
+        JScrollPane quickScroll = scroll(quickSurface);
         quickScroll.setPreferredSize(new Dimension(0, 470));
         quickScroll.setMaximumSize(new Dimension(0, 470));
         // adaptive columns: quick-control cards never clip horizontally
