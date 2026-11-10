@@ -231,6 +231,14 @@ public final class Theme {
         return p;
     }
 
+    /** Left-aligns a card inside a GridLayout cell so the card keeps its own height. */
+    public static JPanel gridCell(JComponent card) {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        p.setOpaque(false);
+        p.add(card);
+        return p;
+    }
+
     /** Small coloured status dot. */
     public static JComponent statusDot(Color color) {
         JComponent dot = new JComponent() {

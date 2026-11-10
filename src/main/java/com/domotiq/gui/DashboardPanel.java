@@ -33,9 +33,9 @@ public class DashboardPanel extends JPanel {
     private final JLabel offlineValue = Theme.label("0", 30, Font.BOLD, Theme.RED);
     private final JLabel activeValue = Theme.label("0", 30, Font.BOLD, Theme.AMBER);
     private final JLabel automationsValue = Theme.label("0", 30, Font.BOLD,
-            new Color(120, 200, 255));
+            new Color(168, 116, 43));
     private final JPanel categoryRow = Theme.hRow(10);
-    private final JPanel quickControls = new JPanel(new GridLayout(0, 3, 14, 14));
+    private final JPanel quickControls = new GradientSurface(new GridLayout(0, 3, 14, 14));
     private final JPanel stats = new JPanel(new GridLayout(0, 5, 16, 0));
     private final JTable activityTable =
             UiTables.styledTable(new String[]{"When", "Device", "Action", "From", "To"}, 0);
@@ -129,9 +129,8 @@ public class DashboardPanel extends JPanel {
     private JScrollPane scroll(java.awt.Component view) {
         JScrollPane s = new JScrollPane(view);
         s.setOpaque(false);
-        s.getViewport().setOpaque(false);
         s.getViewport().setOpaque(true);
-        s.getViewport().add(new GradientBackdrop(), 0);
+        s.getViewport().setBackground(new Color(0, 0, 0, 0));
         s.setBorder(BorderFactory.createEmptyBorder());
         s.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         return s;
@@ -183,7 +182,7 @@ public class DashboardPanel extends JPanel {
             quickControls.add(empty);
         } else {
             for (Device device : devices.stream().limit(9).toList()) {
-                quickControls.add(new DeviceCard(main, device, rooms, false));
+                quickControls.add(Theme.gridCell(new DeviceCard(main, device, rooms, false)));
             }
         }
         quickControls.revalidate();

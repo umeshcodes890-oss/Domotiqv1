@@ -24,7 +24,7 @@ public class DevicesPanel extends JPanel {
     private final JTextField searchField = Theme.textField("Search devices...", 22);
     private final JComboBox<String> typeFilter = new JComboBox<>();
     private final JComboBox<String> roomFilter = new JComboBox<>();
-    private final JPanel grid = new JPanel(new GridLayout(0, 3, 16, 16));
+    private final JPanel grid = new GradientSurface(new GridLayout(0, 3, 16, 16));
 
     public DevicesPanel(MainFrame main) {
         this.main = main;
@@ -60,7 +60,7 @@ public class DevicesPanel extends JPanel {
         JScrollPane scroll = new JScrollPane(grid);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(true);
-        scroll.getViewport().add(new GradientBackdrop(), 0);
+        scroll.getViewport().setBackground(new java.awt.Color(0, 0, 0, 0));
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
@@ -145,13 +145,13 @@ public class DevicesPanel extends JPanel {
                             ? "No devices yet. Click \"+ Add device\" to register your first simulated IoT device."
                             : "No devices match the current search or filters.",
                     14, Font.PLAIN, Theme.TEXT_MUTED));
-            grid.add(empty);
+            grid.add(Theme.gridCell(empty));
             grid.revalidate();
             grid.repaint();
             return;
         }
         for (Device device : visible) {
-            grid.add(new DeviceCard(main, device, rooms, true));
+            grid.add(Theme.gridCell(new DeviceCard(main, device, rooms, true)));
         }
         grid.revalidate();
         grid.repaint();
