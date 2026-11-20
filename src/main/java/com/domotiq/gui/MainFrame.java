@@ -11,21 +11,20 @@ import com.domotiq.model.User;
 import com.domotiq.simulation.DeviceSimulator;
 import com.domotiq.simulation.EnergyTracker;
 
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.ButtonGroup;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
 import java.sql.SQLException;
 
 public class MainFrame extends JFrame {
@@ -43,6 +42,7 @@ public class MainFrame extends JFrame {
 
     private final CardLayout cards = new CardLayout();
     private final JPanel content = new JPanel(cards);
+    private Sidebar sidebar;
     private DashboardPanel dashboardPanel;
     private DevicesPanel devicesPanel;
     private RoomsPanel roomsPanel;
@@ -104,7 +104,8 @@ public class MainFrame extends JFrame {
         };
         root.setOpaque(false);
 
-        root.add(buildSidebar(), BorderLayout.WEST);
+        sidebar = new Sidebar(this);
+        root.add(sidebar, BorderLayout.WEST);
 
         JPanel right = new JPanel(new BorderLayout());
         right.setOpaque(false);
@@ -134,73 +135,54 @@ public class MainFrame extends JFrame {
         });
 
         refreshAll();
+        sidebar.selectIndex(0);
+        installShortcuts();
     }
 
-    private JPanel buildSidebar() {
-        JPanel side = new JPanel();
-        side.setLayout(new javax.swing.BoxLayout(side, javax.swing.BoxLayout.Y_AXIS));
-        side.setBackground(Theme.SIDEBAR);
-        side.setPreferredSize(new Dimension(210, 0));
-        side.setBorder(BorderFactory.createEmptyBorder(24, 16, 24, 16));
-
-        JPanel logoRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
-        logoRow.setOpaque(false);
-        logoRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        logoRow.setMaximumSize(new Dimension(178, 46));
-        logoRow.add(new LoginFrame.LogoMark(30));
-        logoRow.add(Theme.label("DOMOTIQ", 20, Font.BOLD, Theme.SIDEBAR_TEXT));
-        side.add(logoRow);
-        side.add(Box.createVerticalStrut(28));
-
-        ButtonGroup group = new ButtonGroup();
-        side.add(navButton(group, "Dashboard", "dashboard"));
-        side.add(navButton(group, "Devices", "devices"));
-        side.add(navButton(group, "Rooms", "rooms"));
-        side.add(navButton(group, "Automations", "automations"));
-        side.add(navButton(group, "Energy", "energy"));
-        side.add(navButton(group, "History", "history"));
-
-        side.add(Box.createVerticalStrut(20));
-        JLabel note = Theme.label("<html>Simulated IoT devices -<br>no physical hardware.</html>",
-                11, Font.ITALIC, new Color(120, 132, 158));
-        note.setAlignmentX(Component.LEFT_ALIGNMENT);
-        note.setMaximumSize(new Dimension(178, 36));
-        side.add(note);
-
-        return side;
+    /** Selects a rail entry by index, used for Alt+number and the startup default. */
+    void showScreen(int index) {
+        sidebar.selectIndex(index);
     }
 
-    private JToggleButton navButton(ButtonGroup group, String text, String card) {
-        JToggleButton b = new JToggleButton(text) {
-            @Override
-            protected void paintComponent(java.awt.Graphics g) {
-                if (isSelected()) {
-                    var g2 = (java.awt.Graphics2D) g.create();
-                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
-                            java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(Theme.ACCENT);
-                    g2.fillRoundRect(0, 2, getWidth(), getHeight() - 4, 12, 12);
-                    g2.dispose();
+    /** Swaps the visible card and refreshes it, so a screen is never shown stale. */
+    public void showCard(String card) {
+        cards.show(content, card);
+        onCardShown(card);
+    }
+
+    /** Alt+1..6 jump between screens, Ctrl+B folds the rail. */
+    private void installShortcuts() {
+        InputMap keys = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        var actions = getRootPane().getActionMap();
+        for (int i = 0; i < Sidebar.screenCount(); i++) {
+            final int index = i;
+            String key = "nav" + index;
+            keys.put(KeyStroke.getKeyStroke("alt " + (index + 1)), key);
+            actions.put(key, new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    showScreen(index);
                 }
-                super.paintComponent(g);
+            });
+        }
+        keys.put(KeyStroke.getKeyStroke("control B"), "foldRail");
+        actions.put("foldRail", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                sidebar.toggleCollapsed();
             }
-        };
-        b.setFont(Theme.font(16, Font.PLAIN));
-        b.setForeground(Theme.SIDEBAR_TEXT);
-        b.setBackground(Theme.SIDEBAR_BUTTON);
-        b.setFocusPainted(false);
-        b.setBorderPainted(false);
-        b.setOpaque(true);
-        b.setPreferredSize(new Dimension(182, 54));
-        b.setMaximumSize(new Dimension(182, 54));
-        b.setAlignmentX(Component.LEFT_ALIGNMENT);
-        b.setMargin(new java.awt.Insets(0, 14, 0, 0));
-        group.add(b);
-        b.addActionListener(e -> {
-            cards.show(content, card);
-            onCardShown(card);
         });
-        return b;
+    }
+
+    /** The palette lives in static fields, so switching it rebuilds the window. */
+    void toggleTheme() {
+        Theme.Mode next = Theme.mode == Theme.Mode.DARK
+                ? Theme.Mode.LIGHT : Theme.Mode.DARK;
+        ThemeManager.save(user.getUsername(), next);
+        Theme.apply(next);
+        shutdownTimers();
+        dispose();
+        SwingUtilities.invokeLater(() -> new MainFrame(user).setVisible(true));
     }
 
     private JPanel buildHeader() {
@@ -209,12 +191,9 @@ public class MainFrame extends JFrame {
         header.add(Theme.label("Welcome back, " + user.getFullName(),
                 19, Font.BOLD, Theme.TEXT));
 
-        var themeBtn = Theme.ghostButton(
-                Theme.mode == Theme.Mode.DARK ? "Light mode" : "Dark mode", Theme.AMBER);
         var refreshBtn = Theme.ghostButton("Refresh", Theme.ACCENT);
         var logoutBtn = Theme.ghostButton("Log out", Theme.RED);
         JPanel rightButtons = Theme.hRow(10);
-        rightButtons.add(themeBtn);
         rightButtons.add(refreshBtn);
         rightButtons.add(logoutBtn);
         rightButtons.setBorder(BorderFactory.createEmptyBorder(4, 0, 0, 0));
@@ -224,15 +203,6 @@ public class MainFrame extends JFrame {
         bar.add(header, BorderLayout.WEST);
         bar.add(rightButtons, BorderLayout.EAST);
 
-        themeBtn.addActionListener(e -> {
-            Theme.Mode next = Theme.mode == Theme.Mode.DARK
-                    ? Theme.Mode.LIGHT : Theme.Mode.DARK;
-            ThemeManager.save(user.getUsername(), next);
-            Theme.apply(next);
-            shutdownTimers();
-            dispose();
-            SwingUtilities.invokeLater(() -> new MainFrame(user).setVisible(true));
-        });
         refreshBtn.addActionListener(e -> refreshAll());
         logoutBtn.addActionListener(e -> {
             shutdownTimers();
