@@ -104,7 +104,7 @@ public class DeviceCard extends JPanel {
             var manage = Theme.ghostButton("Manage", Theme.ACCENT);
             manage.setFont(Theme.font(12, Font.BOLD));
             manage.setBorder(BorderFactory.createEmptyBorder(7, 12, 7, 12));
-            manage.addActionListener(e -> new DeviceDialog(main, device, true).setVisible(true));
+            manage.addActionListener(e -> new DeviceDialog(main, device).setVisible(true));
             actions.add(manage);
         }
         bottom.add(actions, BorderLayout.EAST);

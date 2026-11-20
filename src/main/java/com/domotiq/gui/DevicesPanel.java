@@ -49,7 +49,7 @@ public class DevicesPanel extends JPanel {
         JPanel right = Theme.hRow(10);
         right.add(addBtn);
         addBtn.addActionListener(e ->
-                new DeviceDialog(main, null, true).setVisible(true));
+                new DeviceDialog(main, null).setVisible(true));
 
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);

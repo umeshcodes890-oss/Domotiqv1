@@ -1,11 +1,13 @@
 package com.domotiq.gui;
 
 import javax.swing.BorderFactory;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.UIManager;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -15,6 +17,7 @@ import java.awt.Font;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -48,6 +51,9 @@ public final class Theme {
     public static Color SIDEBAR;
     public static Color SIDEBAR_BUTTON;
     public static Color SIDEBAR_TEXT;
+    public static Color SIDEBAR_HOVER;
+    public static Color SIDEBAR_ACTIVE;
+    public static Color SIDEBAR_NOTE;
 
     /* ----- gradient endpoints (creamy surfaces in light mode) ----- */
     public static Color BG_TOP;
@@ -58,6 +64,9 @@ public final class Theme {
     public static Mode mode = Mode.DARK;
 
     private static final String FONT_FAMILY = "Segoe UI";
+
+    /** Global micro-interaction duration; every state tween uses the same rhythm. */
+    public static final int MOTION_MS = 180;
 
     static {
         apply(Mode.DARK);
@@ -88,6 +97,9 @@ public final class Theme {
             SIDEBAR = new Color(19, 25, 40);
             SIDEBAR_BUTTON = new Color(30, 40, 62);
             SIDEBAR_TEXT = new Color(232, 238, 250);
+            SIDEBAR_HOVER = new Color(38, 50, 76);
+            SIDEBAR_ACTIVE = new Color(56, 74, 112);
+            SIDEBAR_NOTE = new Color(150, 162, 185);
             BG_TOP = new Color(22, 28, 44);
             BG_BOTTOM = new Color(12, 16, 26);
             CARD_TOP = new Color(36, 46, 70);
@@ -113,11 +125,44 @@ public final class Theme {
             SIDEBAR = new Color(58, 45, 32);        // warm espresso
             SIDEBAR_BUTTON = new Color(82, 65, 47);
             SIDEBAR_TEXT = new Color(245, 238, 224);
+            SIDEBAR_HOVER = new Color(96, 77, 55);
+            SIDEBAR_ACTIVE = new Color(128, 102, 72);
+            SIDEBAR_NOTE = new Color(200, 186, 164);
             BG_TOP = new Color(255, 251, 235);      // #FFFBEB ivory
             BG_BOTTOM = new Color(243, 231, 211);   // warm sand
             CARD_TOP = new Color(255, 254, 250);
             CARD_BOTTOM = new Color(250, 240, 222);
         }
+        installDefaults();
+    }
+
+    /**
+     * The app runs on the default cross-platform look & feel, which paints several
+     * surfaces from UIManager rather than from the component, so those keys have to
+     * follow the palette too. Call sites create components after apply(), so the
+     * new values are picked up on a theme switch.
+     */
+    private static void installDefaults() {
+        UIManager.put("Panel.background", PANEL);
+        UIManager.put("OptionPane.background", PANEL);
+        UIManager.put("ScrollPane.background", PANEL);
+        UIManager.put("Viewport.background", PANEL);
+        UIManager.put("Label.foreground", TEXT);
+        UIManager.put("TextField.background", FIELD_BG);
+        UIManager.put("TextField.foreground", TEXT);
+        UIManager.put("FormattedTextField.background", FIELD_BG);
+        UIManager.put("FormattedTextField.foreground", TEXT);
+        UIManager.put("ComboBox.background", FIELD_BG);
+        UIManager.put("ComboBox.foreground", TEXT);
+        UIManager.put("ComboBox.selectionBackground", ACCENT);
+        UIManager.put("ComboBox.selectionForeground", Color.WHITE);
+        UIManager.put("List.background", FIELD_BG);
+        UIManager.put("List.foreground", TEXT);
+        UIManager.put("List.selectionBackground", ACCENT);
+        UIManager.put("List.selectionForeground", Color.WHITE);
+        UIManager.put("ToolTip.background", FIELD_BG);
+        UIManager.put("ToolTip.foreground", TEXT);
+        UIManager.put("Separator.foreground", BORDER);
     }
 
     /** Paints a rounded vertical gradient surface (cards, panels, canvases). */
@@ -127,6 +172,15 @@ public final class Theme {
                 RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setPaint(new GradientPaint(0, 0, top, 0, height, bottom));
         g2.fillRoundRect(0, 0, width, height, arc, arc);
+    }
+
+    /** Linear blend between two palette colours, used for hover and press states. */
+    public static Color blend(Color from, Color to, float t) {
+        float clamped = Math.max(0f, Math.min(1f, t));
+        return new Color(
+                Math.round(from.getRed() + (to.getRed() - from.getRed()) * clamped),
+                Math.round(from.getGreen() + (to.getGreen() - from.getGreen()) * clamped),
+                Math.round(from.getBlue() + (to.getBlue() - from.getBlue()) * clamped));
     }
 
     public static Font font(int size, int style) {
@@ -176,6 +230,19 @@ public final class Theme {
         return b;
     }
 
+    /** Compact button tinted for the sidebar surface, icon slot supported. */
+    public static JButton sidebarButton(String text, Color fg, Icon icon) {
+        JButton b = button(text, SIDEBAR_BUTTON);
+        b.setForeground(fg);
+        b.setFont(font(13, Font.PLAIN));
+        b.setIcon(icon);
+        b.setIconTextGap(9);
+        b.setMargin(new Insets(6, 10, 6, 10));
+        b.setBorder(BorderFactory.createLineBorder(blend(SIDEBAR_BUTTON, SIDEBAR_TEXT, 0.18f)));
+        b.setBorderPainted(true);
+        return b;
+    }
+
     public static JTextField textField(String placeholder, int columns) {
         JTextField f = new JTextField(columns) {
             @Override
@@ -206,6 +273,31 @@ public final class Theme {
                 BorderFactory.createLineBorder(INPUT_BORDER),
                 BorderFactory.createEmptyBorder(9, 12, 9, 12)));
         return f;
+    }
+
+    /** Applies the palette to a control the theme has no factory for (combo, slider). */
+    public static void styleInput(JComponent c) {
+        c.setFont(font(13, Font.PLAIN));
+        c.setForeground(TEXT);
+        c.setBackground(FIELD_BG);
+        c.setBorder(BorderFactory.createLineBorder(INPUT_BORDER));
+    }
+
+    /**
+     * A read-only value dressed as a field. A disabled control cannot be used for
+     * this: the default look & feel ignores the background of disabled components
+     * and paints them light grey, which breaks dark mode.
+     */
+    public static JLabel readOnlyField(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(font(13, Font.PLAIN));
+        l.setForeground(TEXT_MUTED);
+        l.setBackground(FIELD_BG);
+        l.setOpaque(true);
+        l.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(INPUT_BORDER),
+                BorderFactory.createEmptyBorder(7, 12, 7, 12)));
+        return l;
     }
 
     /** A rounded card container with a soft vertical gradient. */

@@ -41,11 +41,11 @@ public class DeviceDialog extends JDialog {
 
     private List<Room> rooms;
 
-    public DeviceDialog(MainFrame main, Device device, boolean adding) {
-        super(main, adding ? "Add device" : "Manage " + device.getName(), true);
+    public DeviceDialog(MainFrame main, Device device) {
+        super(main, device == null ? "Add device" : "Manage " + device.getName(), true);
         this.main = main;
         this.device = device;
-        this.adding = adding;
+        this.adding = device == null;
         try {
             rooms = main.getRoomController().listRooms(main.getUser().getId());
         } catch (SQLException ex) {
@@ -68,8 +68,8 @@ public class DeviceDialog extends JDialog {
 
         roomCombo.addItem("— Unassigned —");
         rooms.forEach(r -> roomCombo.addItem(r.getName()));
-        styleInput(typeCombo);
-        styleInput(roomCombo);
+        Theme.styleInput(typeCombo);
+        Theme.styleInput(roomCombo);
 
         if (adding) {
             basics.add(captioned("DEVICE NAME", nameField));
@@ -78,7 +78,6 @@ public class DeviceDialog extends JDialog {
         } else {
             nameField.setText(device.getName());
             typeCombo.setSelectedItem(device.getDeviceType());
-            typeCombo.setEnabled(false);
             if (device.getRoomId() != null) {
                 for (int i = 0; i < rooms.size(); i++) {
                     if (rooms.get(i).getId() == device.getRoomId()) {
@@ -87,7 +86,8 @@ public class DeviceDialog extends JDialog {
                 }
             }
             basics.add(captioned("DEVICE NAME", nameField));
-            basics.add(captioned("CATEGORY (cannot change after creation)", typeCombo));
+            basics.add(captioned("CATEGORY (cannot change after creation)",
+                    Theme.readOnlyField(device.getDeviceType().getLabel())));
             basics.add(captioned("ROOM", roomCombo));
         }
 
@@ -144,7 +144,7 @@ public class DeviceDialog extends JDialog {
             case COMBO -> {
                 JComboBox<String> combo = new JComboBox<>(def.options.toArray(String[]::new));
                 combo.setSelectedItem(value);
-                styleInput(combo);
+                Theme.styleInput(combo);
                 return combo;
             }
             case TOGGLE -> {
@@ -244,13 +244,6 @@ public class DeviceDialog extends JDialog {
                 main.showError(ex.getMessage());
             }
         }
-    }
-
-    private static void styleInput(JComponent c) {
-        c.setFont(Theme.font(13, Font.PLAIN));
-        c.setForeground(Theme.TEXT);
-        c.setBackground(Theme.FIELD_BG);
-        c.setBorder(BorderFactory.createLineBorder(Theme.INPUT_BORDER));
     }
 
     private static JPanel captioned(String caption, JComponent editor) {

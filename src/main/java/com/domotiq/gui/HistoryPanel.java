@@ -32,7 +32,7 @@ public class HistoryPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(6, 24, 16, 24));
 
         limitCombo.setSelectedItem(100);
-        limitCombo.setFont(Theme.font(13, Font.PLAIN));
+        Theme.styleInput(limitCombo);
 
         JPanel bar = Theme.hRow(10);
         bar.add(Theme.label("Show last", 13, Font.PLAIN, Theme.TEXT_MUTED));

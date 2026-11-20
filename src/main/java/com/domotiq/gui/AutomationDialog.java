@@ -89,6 +89,7 @@ public class AutomationDialog extends JDialog {
         setMinimumSize(new Dimension(680, 720));
         setSize(new Dimension(680, 760));
         setLocationRelativeTo(main);
+        getContentPane().setBackground(Theme.PANEL);
         setLayout(new BorderLayout());
 
         JPanel form = new JPanel();
@@ -279,7 +280,6 @@ public class AutomationDialog extends JDialog {
         style(settingCombo);
         settingCombo.setRenderer(new ListCellWrap<Device.SettingDefinition>(
                 d -> d == null ? "" : d.label));
-        style(valueCard);
         valueCard.setOpaque(false);
         sliderValueField.setPreferredSize(new Dimension(190, 34));
         optionValueCombo.setPreferredSize(new Dimension(190, 34));
